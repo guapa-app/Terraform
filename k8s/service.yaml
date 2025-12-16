@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: laravel-service
+  namespace: laravel-prod-ahm
+  annotations:
+    service.beta.kubernetes.io/oci-load-balancer-shape: "flexible"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "100"
+    service.beta.kubernetes.io/oci-load-balancer-private: "false"   # PUBLIC LB
+    
+    service.beta.kubernetes.io/oci-load-balancer-subnet1: "ocid1.subnet.oc1.me-riyadh-1.aaaaaaaa5t5vidtsqiqhi2uwzgmq2grodkotuqxcwqcmfvggum2yz3gddisa"
+
+spec:
+  type: LoadBalancer
+  selector:
+    app: laravel
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

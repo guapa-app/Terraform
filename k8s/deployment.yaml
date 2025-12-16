@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: laravel-app
+  namespace: laravel-prod-ahm
+  labels:
+    app: laravel
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
+  selector:
+    matchLabels:
+      app: laravel
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  template:
+    metadata:
+      labels:
+        app: laravel
+    spec:
+      containers:
+      - name: nginx
+        image: me-riyadh-1.ocir.io/ax45nhirzfe7/guapa:nginx-prod
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+
+      - name: php-fpm
+        image: me-riyadh-1.ocir.io/ax45nhirzfe7/guapa:fpm-prod
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9000
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+        env:
+        - name: PASSPORT_PRIVATE_KEY
+          value: /var/www/html/storage/oauth/oauth-private.key
+        - name: PASSPORT_PUBLIC_KEY
+          value: /var/www/html/storage/oauth/oauth-public.key
+        - name: APP_DEBUG
+          value: "true"
+        envFrom:
+        - secretRef:
+            name: laravel-env
+        - secretRef:
+            name: mysql-secret
+        volumeMounts:
+        - mountPath: /var/www/html/storage/oauth
+          name: passport-keys
+          readOnly: true
+        - mountPath: /var/www/html/.env
+          name: laravel-env-file
+          subPath: .env
+
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      schedulerName: default-scheduler
+      imagePullSecrets:
+      - name: ocirsecret
+      securityContext: {}
+      volumes:
+      - name: passport-keys
+        secret:
+          secretName: passport-keys
+          items:
+          - key: oauth-private.key
+            path: oauth-private.key
+          - key: oauth-public.key
+            path: oauth-public.key
+      - name: laravel-env-file
+        secret:
+          secretName: laravel-env

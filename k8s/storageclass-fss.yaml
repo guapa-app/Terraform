@@ -1,0 +1,10 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: oci-fss
+provisioner: oracle.com/oci-fss
+parameters:
+  mntTargetId: ocid1.mounttarget.oc1.me_riyadh_1.aaaaaa4np2t34si2oj2wqllqojxwiotnmuwxe2lzmfsgqljrfvqwiljr
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
