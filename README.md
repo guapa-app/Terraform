@@ -46,12 +46,12 @@ terraform init
 terraform validate
 terraform plan
 
-text
+
 
 ### Apply changes
 terraform apply
 
-text
+
 
 **Provisions:**
 - OKE Cluster & Node pools
@@ -81,7 +81,7 @@ kubectl apply -f k8s/service.yaml
 3.6 Apply HPA
 kubectl apply -f k8s/hpa.yaml
 
-text
+
 
 ## 4. Laravel ENV Secret Management
 
@@ -92,12 +92,12 @@ $ns = "laravel-prod-ahm"
 kubectl -n $ns delete secret laravel-env --ignore-not-found
 kubectl -n $ns create secret generic laravel-env --from-file=.env="D:.env"
 
-text
+
 
 ### Verify
 kubectl -n laravel-prod-ahm get secret laravel-env -o yaml
 
-text
+
 
 ## 5. OCI DevOps Repository
 
@@ -105,7 +105,7 @@ text
 SSH: ssh://devops.scmservice.me-riyadh-1.oci.oraclecloud.com/namespaces/ax45nhirzfe7/projects/laravelbackend/repositories/backend
 HTTPS: https://devops.scmservice.me-riyadh-1.oci.oraclecloud.com/namespaces/ax45nhirzfe7/projects/laravelbackend/repositories/backend
 
-text
+
 
 **Basic Git:**
 git clone <repo>
@@ -114,7 +114,7 @@ git add .
 git commit -m "update"
 git push
 
-text
+
 
 ## 6. Check Secrets
 
@@ -127,14 +127,14 @@ kubectl get secret ocirsecret -n laravel-prod-ahm -o yaml
 Laravel
 kubectl get secret laravel-env -n laravel-prod-ahm -o yaml
 
-text
+
 
 ## 7. Troubleshooting
 
 ### 7.1 Pods
 kubectl -n laravel-prod-ahm get pods -o wide
 
-text
+
 
 ### 7.2 Logs
 PHP-FPM
@@ -143,7 +143,7 @@ kubectl logs -n laravel-prod-ahm <pod> -c php-fpm --tail=200
 Nginx
 kubectl logs -n laravel-prod-ahm <pod> -c nginx --tail=200
 
-text
+
 
 ### 7.3 Fix DB Credentials
 Check current
@@ -160,7 +160,7 @@ kubectl -n laravel-prod-ahm create secret generic mysql-secret
 Restart
 kubectl -n laravel-prod-ahm rollout restart deploy laravel-app
 
-text
+
 
 ## 8. CI/CD Workflow
 
@@ -185,11 +185,10 @@ $ns="laravel-prod-ahm"
 kubectl -n $ns get hpa
 kubectl -n $ns describe hpa laravel-hpa
 
-text
+
 
 ## 10. Architecture Diagram
 
-text
             +-------------------------+
             |     OCI DevOps Repo     |
             +------------+------------+
@@ -197,6 +196,7 @@ text
                          v
             +-------------------------+
             |  OCI DevOps Build CI    |
+            |  Build Docker Images    |
             +------------+------------+
                          |
                          v
@@ -225,6 +225,7 @@ text
      |        +--------------------+
      |
      v
+
 +-------------------+
 | OCI LoadBalancer |
 +---------+---------+
@@ -234,7 +235,7 @@ v
 | User |
 +---------+
 
-text
+
 
 ---
 
