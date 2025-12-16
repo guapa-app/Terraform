@@ -154,7 +154,7 @@ kubectl -n laravel-prod-ahm delete secret mysql-secret
 kubectl -n laravel-prod-ahm create secret generic mysql-secret
 --from-literal=DB_HOST=10.20.30.90
 --from-literal=DB_USERNAME=Admin
---from-literal=DB_PASSWORD="Sw&d2S2,yG4Z"
+--from-literal=DB_PASSWORD="DBPasswordHERE"
 --from-literal=DB_DATABASE=guapa_db
 
 Restart
