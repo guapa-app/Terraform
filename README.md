@@ -2,7 +2,7 @@
 
 Deploy GitLab Runners on Oracle Container Engine for Kubernetes with autoscaling functionality to scale worker nodes automatically based on load for smooth running jobs in the CI/CD pipeline. This Terraform code will create an OKE cluster with all dependent resources (networking, worker node-pool), deploy cluster autoscalling and Gitlab runners. 
 
-For details of the architecture, see [_Deploy GitLab Runners on Oracle Container Engine for Kubernetes with autoscaling_](https://docs.oracle.com/en/solutions/git-lab-runners-on-oke/index.html)
+
 
 
 ![](./images/git-lab-runner-kubernetes.png)
@@ -22,113 +22,220 @@ Gitlab runners will handle pending CI/CD jobs and will book, by default, 0.2 CPU
     - manage compute resources
     - manage resource manager service
 
-    **Note:** 
+  # Guapa Backend – Deployment & Infrastructure Guide
 
-    - If you don't have access to an OCI tenancy you can register [here](https://www.oracle.com/cloud/free/) for a free trial.
-    
-    - In case you plan to use existing OCI network resources, make sure [these](https://docs.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengnetworkconfig.htm#securitylistconfig) requirements are met.
+**Environment:** Oracle Cloud Infrastructure (OCI) + Kubernetes (OKE) + Terraform + Laravel
 
-2. Gitlab account.
-   - required for Gitlab Runner registration token
+## 1. Overview
 
-If you don't have the required permissions and quota, contact your tenancy administrator. See [Policy Reference](https://docs.cloud.oracle.com/en-us/iaas/Content/Identity/Reference/policyreference.htm), [Service Limits](https://docs.cloud.oracle.com/en-us/iaas/Content/General/Concepts/servicelimits.htm), [Compartment Quotas](https://docs.cloud.oracle.com/iaas/Content/General/Concepts/resourcequotas.htm).
+This document provides the full deployment workflow for the Guapa backend application:
 
-## Deploy Using Oracle Resource Manager
+- Infrastructure provisioning using Terraform
+- Kubernetes (OKE) deployment
+- Secrets and environment management
+- OCI DevOps repository usage
+- Database access configuration
+- Troubleshooting essentials
 
-1. Click [![Deploy to Oracle Cloud](https://oci-resourcemanager-plugin.plugins.oci.oraclecloud.com/latest/deploy-to-oracle-cloud.svg)](https://cloud.oracle.com/resourcemanager/stacks/create?region=home&zipUrl=https://github.com/oracle-devrel/terraform-oci-arch-oke-autoscale-gitlab-runners/releases/latest/download/terraform-oci-arch-oke-autoscale-gitlab-runners-stack-latest.zip)
+Suitable for DevOps and backend engineers onboarding to the Guapa platform.
 
-    If you aren't already signed in, when prompted, enter the tenancy and user credentials.
+## 2. Terraform Deployment
 
-2. Review and accept the terms and conditions.
+### Initialize & validate
+terraform init
+terraform validate
+terraform plan
 
-3. Select the region where you want to deploy the stack.
+text
 
-4. Follow the on-screen prompts and instructions to create the stack.
+### Apply changes
+terraform apply
 
-5. After creating the stack, click **Terraform Actions**, and select **Plan**.
+text
 
-6. Wait for the job to be completed, and review the plan.
+**Provisions:**
+- OKE Cluster & Node pools
+- VCN/Subnets
+- MySQL DB System
+- Load balancer resources
+- IAM policies
+- Required networking
 
-    To make any changes, return to the Stack Details page, click **Edit Stack**, and make the required changes. Then, run the **Plan** action again.
+## 3. Kubernetes Deployment Workflow
 
-7. If no further changes are necessary, return to the Stack Details page, click **Terraform Actions**, and select **Apply**. 
+3.1 Create namespace
+kubectl apply -f k8s/namespace.yaml
 
-## Deploy Using the Terraform CLI
+3.2 Create secrets
+kubectl apply -f k8s/secrets.yaml
 
-### Clone the Module
+3.3 Deploy MySQL (if applicable)
+kubectl apply -f k8s/mysql.yaml
 
-Now, you'll want a local copy of this repo. You can make that with the commands:
+3.4 Deploy application
+kubectl apply -f k8s/deployment.yaml
 
-```
-    git clone https://github.com/oracle-devrel/terraform-oci-arch-oke-autoscale-gitlab-runners.git
-    cd terraform-oci-arch-oke-autoscale-gitlab-runners
-    ls
-```
+3.5 Expose service
+kubectl apply -f k8s/service.yaml
 
-### Install helm
+3.6 Apply HPA
+kubectl apply -f k8s/hpa.yaml
 
-Required for gitlab runners deployment to OKE using helm charts.
+text
 
-```
-    $ curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-    $ chmod 700 get_helm.sh
-    $ ./get_helm.sh
-```
+## 4. Laravel ENV Secret Management
 
-[HELM installation guide](https://helm.sh/docs/intro/install/)
+**.env file stored as `laravel-env` Kubernetes secret.**
 
-### Prerequisites
-First off, you'll need to do some pre-deploy setup.  That's all detailed [here](https://github.com/cloud-partners/oci-prerequisites).
+### Update .env (Windows PowerShell)
+$ns = "laravel-prod-ahm"
+kubectl -n $ns delete secret laravel-env --ignore-not-found
+kubectl -n $ns create secret generic laravel-env --from-file=.env="D:.env"
 
-Create a `terraform.tfvars` file, and specify the following variables:
+text
 
-```
-# Authentication
-tenancy_ocid         = "<tenancy_ocid>"
-user_ocid            = "<user_ocid>"
-fingerprint          = "<finger_print>"
-private_key_path     = "<pem_private_key_path>"
+### Verify
+kubectl -n laravel-prod-ahm get secret laravel-env -o yaml
 
-# Region
-region = "<oci_region>"
+text
 
-# Compartment
-compartment_ocid = "<compartment_ocid>"
+## 5. OCI DevOps Repository
 
-````
+**Clone:**
+SSH: ssh://devops.scmservice.me-riyadh-1.oci.oraclecloud.com/namespaces/ax45nhirzfe7/projects/laravelbackend/repositories/backend
+HTTPS: https://devops.scmservice.me-riyadh-1.oci.oraclecloud.com/namespaces/ax45nhirzfe7/projects/laravelbackend/repositories/backend
 
-### Create the Resources
-Run the following commands:
+text
 
-    terraform init
-    terraform plan
-    terraform apply
+**Basic Git:**
+git clone <repo>
+git pull
+git add .
+git commit -m "update"
+git push
 
+text
 
-### Check status of the deployment
+## 6. Check Secrets
 
-Connect to OCI cloud shell and execute below commands:
+MySQL
+kubectl get secret mysql-secret -n laravel-prod-ahm -o yaml
 
-    $ oci ce cluster create-kubeconfig --cluster-id <oke_cluster_id>
-    $ kubectl get deployments --all-namespaces
+Docker Registry (OCIR)
+kubectl get secret ocirsecret -n laravel-prod-ahm -o yaml
 
-Confirm deployed gitlab runners are available in runners section of Gitlab Project CI/CD Settings.
+Laravel
+kubectl get secret laravel-env -n laravel-prod-ahm -o yaml
 
-Validate the deployment using `gitlab-ci.yml` file in `samples` directory.
+text
 
-### Destroy the Deployment
-When you no longer need the deployment, you can run this command to destroy the resources:
+## 7. Troubleshooting
 
-    terraform destroy
+### 7.1 Pods
+kubectl -n laravel-prod-ahm get pods -o wide
 
-## Contributing
-This project is open source.  Please submit your contributions by forking this repository and submitting a pull request!  Oracle appreciates any contributions that are made by the open source community.
+text
 
-## License
-Copyright (c) 2024 Oracle and/or its affiliates.
+### 7.2 Logs
+PHP-FPM
+kubectl logs -n laravel-prod-ahm <pod> -c php-fpm --tail=200
 
-Licensed under the Universal Permissive License (UPL), Version 1.0.
+Nginx
+kubectl logs -n laravel-prod-ahm <pod> -c nginx --tail=200
 
-See [LICENSE](LICENSE.txt) for more details.
+text
 
-ORACLE AND ITS AFFILIATES DO NOT PROVIDE ANY WARRANTY WHATSOEVER, EXPRESS OR IMPLIED, FOR ANY SOFTWARE, MATERIAL OR CONTENT OF ANY KIND CONTAINED OR PRODUCED WITHIN THIS REPOSITORY, AND IN PARTICULAR SPECIFICALLY DISCLAIM ANY AND ALL IMPLIED WARRANTIES OF TITLE, NON-INFRINGEMENT, MERCHANTABILITY, AND FITNESS FOR A PARTICULAR PURPOSE. FURTHERMORE, ORACLE AND ITS AFFILIATES DO NOT REPRESENT THAT ANY CUSTOMARY SECURITY REVIEW HAS BEEN PERFORMED WITH RESPECT TO ANY SOFTWARE, MATERIAL OR CONTENT CONTAINED OR PRODUCED WITHIN THIS REPOSITORY. IN ADDITION, AND WITHOUT LIMITING THE FOREGOING, THIRD PARTIES MAY HAVE POSTED SOFTWARE, MATERIAL OR CONTENT TO THIS REPOSITORY WITHOUT ANY REVIEW. USE AT YOUR OWN RISK.
+### 7.3 Fix DB Credentials
+Check current
+kubectl -n laravel-prod-ahm get secret mysql-secret -o jsonpath="{.data.DB_HOST}" | %{ [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($_)) }
+
+Update
+kubectl -n laravel-prod-ahm delete secret mysql-secret
+kubectl -n laravel-prod-ahm create secret generic mysql-secret
+--from-literal=DB_HOST=10.20.30.90
+--from-literal=DB_USERNAME=Admin
+--from-literal=DB_PASSWORD="Sw&d2S2,yG4Z"
+--from-literal=DB_DATABASE=guapa_db
+
+Restart
+kubectl -n laravel-prod-ahm rollout restart deploy laravel-app
+
+text
+
+## 8. CI/CD Workflow
+
+1. Developer pushes to OCI DevOps repo
+2. Build pipeline creates `nginx-prod` & `fpm-prod` images
+3. Images pushed to OCIR
+4. `kubectl apply -f k8s/deployment.yaml`
+
+## 9. Useful Commands
+
+List secrets
+kubectl -n laravel-prod-ahm get secrets
+
+Edit deployment
+kubectl -n laravel-prod-ahm edit deploy laravel-app
+
+Port-forward
+kubectl port-forward -n laravel-prod-ahm <pod> 8080:80
+
+HPA
+$ns="laravel-prod-ahm"
+kubectl -n $ns get hpa
+kubectl -n $ns describe hpa laravel-hpa
+
+text
+
+## 10. Architecture Diagram
+
+text
+            +-------------------------+
+            |     OCI DevOps Repo     |
+            +------------+------------+
+                         |
+                         v
+            +-------------------------+
+            |  OCI DevOps Build CI    |
+            +------------+------------+
+                         |
+                         v
+             +------------------------+
+             |       OCIR Registry    |
+             +-------------+----------+
+                           |
+                           v
+                +-------------------+
+     +---------->     OKE Cluster    <-----------+
+     |          | (Kubernetes Nodes) |           |
+     |          +-------------------+           |
+     |                    |                    |
+     |          +---------+---------+          |
+     |          |     Deployment     |         |
+     |          | (nginx + php-fpm)  |         |
+     |          +----+---------+----+         |
+     |               |         |              |
+     |        +------+    +----+----+         |
+     |        | Pod 1 |  |  Pod 2  | <--------+
+     |        +---+---+  +----+----+
+     |            |           |
+     |            v           v
+     |        +--------------------+
+     |        |   OCI MySQL DB     |
+     |        +--------------------+
+     |
+     v
++-------------------+
+| OCI LoadBalancer |
++---------+---------+
+|
+v
++---------+
+| User |
++---------+
+
+text
+
+---
+
+**This handbook serves as the official guide for Guapa backend infrastructure maintenance and deployment.**
