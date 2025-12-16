@@ -225,7 +225,6 @@ kubectl -n $ns describe hpa laravel-hpa
      |        +--------------------+
      |
      v
-
 +-------------------+
 | OCI LoadBalancer |
 +---------+---------+
